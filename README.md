@@ -2,7 +2,8 @@
 automatic estorage bte calibration tool
 
 ## Requirements
-canlib library for can tool communication
+canlib library from kvaser
 
 
 ## Installation
+

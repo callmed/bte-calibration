@@ -1,43 +1,77 @@
-from canlib import canlib, Frame
-from canlib.canlib import ChannelData
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+#TODO:
+#TODO:
+
+"""
+Comment style description of the script's purpose.
+
+Arguments:
+    --software:     Show software version
+    --debug:        Activate debugging
+
+"""
 
 
-def setUpChannel(channel=0,
-                 openFlags=canlib.canOPEN_ACCEPT_VIRTUAL,
-                 bitrate=canlib.canBITRATE_500K,
-                 bitrateFlags=canlib.canDRIVER_NORMAL):
-    ch = canlib.openChannel(channel, openFlags)
-    print("Using channel: %s, EAN: %s" % (ChannelData(channel).device_name,
-                                          ChannelData(channel).card_upc_no)
-                                              )
-    ch.setBusOutputControl(bitrateFlags)
-    ch.setBusParams(bitrate)
-    ch.busOn()
-    return ch
+import os
+import sys
+import logging
+import argparse
 
 
-def tearDownChannel(ch):
-    ch.busOff()
-    ch.close()
+SW_VERION = 0.1
+DEBUGGING = False
+LOGGER = logging.getLogger(__name__)
 
 
-print("canlib version:", canlib.dllversion())
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+GUI_DIR = os.path.join(BASE_DIR,"gui")
 
-ch0 = setUpChannel(channel=0)
-ch1 = setUpChannel(channel=1)
 
-frame = Frame(id_=100, data=[1, 2, 3, 4], flags=canlib.canMSG_EXT)
-ch1.write(frame)
+class InvalidArguments(Exception):
+    pass
 
-while True:
+
+def main():
+    # Configure module logger object
+    frm = logging.Formatter("[{levelname:8}] {asctime} : {funcName} : {message}","%d.%m.%Y %H:%M:%S", style="{")
+    logger = LOGGER
+    logger.setLevel(logging.DEBUG)
+    # Setup for file logging
+    logfile_name = __file__[:-3] + ".log"
+    fh = logging.FileHandler(filename=logfile_name, mode='w', delay=True)
+    fh.setFormatter(frm)
+    fh.setLevel(logging.ERROR)
+    logger.addHandler(fh)
+    # Setup for console logging
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(frm)
+    ch.setLevel(logging.DEBUG)
+    logger.addHandler(ch)
+    # Read console arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--debug", action="store_true", default=False, dest="sw_debug", help="Activate debugging into logfile")
+    parser.add_argument("--version", action="store_true", default=False, dest="sw_version", help="Print software version")
+    args = parser.parse_args()
+
     try:
-        frame = ch0.read()
-        print(frame)
-        break
-    except (canlib.canNoMsg) as ex:
-        pass
-    except (canlib.canError) as ex:
-        print(ex)
+        if args.sw_version:
+            print("BTE Calibration Tool - v{}".format(SW_VERION))
+            sys.exit(0)
 
-tearDownChannel(ch0)
-tearDownChannel(ch1)
+        if args.sw_debug:
+            DEBUGGING = True
+            logger.debug("Debugging active")
+
+    except InvalidArguments as e:
+        logger.error("Invalid argument")
+        sys.exit(1)
+
+    else:
+        logger.debug("Provided argument valid")
+        # RUN CODE HERE
+
+
+if __name__ == "__main__":
+    main()

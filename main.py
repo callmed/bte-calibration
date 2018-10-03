@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-#TODO:
-#TODO:
+#TODO: Check argument list items exists and raise an error if not. (Bitrate, Device)
+#TODO: 
 
 """
 Comment style description of the script's purpose.
@@ -53,6 +53,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", action="store_true", default=False, dest="sw_debug", help="Activate debugging into logfile")
     parser.add_argument("--version", action="store_true", default=False, dest="sw_version", help="Print software version")
+    parser.add_argument("--device", action="store", dest="device", help="CAN device")
+    parser.add_argument("--channel", action="store", default=0, type=int, dest="channel", help="CAN channel")
+    parser.add_argument("--bitrate", action="store", default="500K", dest="bitrate", help="CAN bitrate. Possible values are: 1M, 500K, 250K")
     args = parser.parse_args()
 
     try:

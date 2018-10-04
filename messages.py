@@ -24,28 +24,31 @@ from can import Message
 SET_SLOPE_U_I = {"msg_id": 0x144,
                  "msg_fmt": "<ff",
                  "dlc": 8,
-                 "channels": [{"name": "slope_voltage",
-                               "unit": "V",
-                               "factor: 1},
-                               {"name": "slope_current",
-                                "unit": "A",
-                                "factor": 1
-                               }]
+                 "slope_voltage": {"byte_size":4,
+                                   "unit":"V",
+                                   "factor:1},
+                 "slope_current": {"byte_size":4,
+                                   "unit":"A",
+                                   "factor":1}
                 }
                               
 
-MSGID_SET_SLOPE_U_I = 0x144  
-
-
-def msgSET_SLOPE_U_I(slope_voltage,slope_current):
+def load_set_slope_u_i(slope_voltage,slope_current):
   """Create CAN message object with data loaded.""" 
   payload = None
-  fmt = '<ff'
-  payload = struct.pack(fmt, slope_voltage, slope_current)
-  return Message(arbitration_id=;MSGID_SET_SLOPE_U_I,data=payload,extended_id=False)
+  msgfmt = SET_SLOPE_U_I["msg_fmt"]
+  msgid = SET_SLOPE_U_I["msg_id"]
+                 
+  payload = struct.pack(msgfmt, slope_voltage, slope_current)
+  #logger.debug("Message payload: ", binascii.hexlify(payload))
+  return Message(arbitration_id=msgid,data=payload,extended_id=False)
 
-# To unload data from message                             
-# voltage,current = struct.unpack(fmt,payload)
+
+def unload_set_slope_u_i(msg):
+  """Return CAN message data from message object."""
+  msgfmt = SET_SLOPE_U_I["msg_fmt"]
+  voltage, current = struct.unpack(msgfmt, msg.data)
+  return (voltage, current)
                               
 
                               

@@ -28,4 +28,10 @@ def loadDataToMessage(payload):
 
 
 def swapPayload(payload):
-    pass
+    """Reverse a string as string pairs of two."""
+    payload_reverse = []
+    len_pair = 2
+    pair_lst = [payload[i:i+len_pair] for i in range(0, len(payload), len_pair)]
+    for p in reversed(pair_lst):
+        payload_reverse.append(p)
+    return payload_reverse

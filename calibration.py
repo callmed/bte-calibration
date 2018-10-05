@@ -20,18 +20,3 @@ def convertIEEE754Hex(value):
     hex_value = hex(int_value)
     return hex_value
 
-
-def loadDataToMessage(payload):
-"""Re-orders data to fit the INTEL byte-order rule (little-endian)."""
-    # Least significant byte at least significat message byte
-    return payload
-
-
-def swapPayload(payload):
-    """Reverse a string as string pairs of two."""
-    payload_reverse = []
-    len_pair = 2
-    pair_lst = [payload[i:i+len_pair] for i in range(0, len(payload), len_pair)]
-    for p in reversed(pair_lst):
-        payload_reverse.append(p)
-    return payload_reverse

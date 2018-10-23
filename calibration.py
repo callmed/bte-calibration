@@ -1,80 +1,161 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-#TODO:
-#TODO:
 
 """
 Comment style description of the script's purpose.
 
-"""
+FILE_STRUCTURE: main.py: Contains general program parts like console argument handling, filesystem jobs, CAN interface handling.
+				calibration.py: Contains basic information, required for the calibration process. E.g. writing the calibration protocol
+								sending messages,
+				messages.py: Provides message details, generates messages and converts message data back into raw values.
 
-import numpy as np
-from messages import *
-
-
-CAN_BITRATES = {
-					"1M":1000000,
-					"500K":500000,
-					"250":250000,
-					"125K":125000
-				}
-				
-CAN_DEVICES = {
-					"kvaser":"kvaser",
-					"vector":"vector",
-					"pcan":"pcan",
-					"ixxat":"ixxat"
-			}
-
-				
-# ENVIROMENT VARIABLE for CAN interfaces
-CAN_INTERFACE = "kvaser"
-CAN_CHANNEL = 0
-CAN_BITRATE = CAN_BITRATES["500K"]
-
-#if CAN_INTERFACE not NULL:
-#    can.util.load_environment_config()
-
-# Manual configuration of CAN interface
-#can.rc['interface'] = CAN_DEVICES["kvaser"]
-#can.rc['channel'] = 0
-#can.rc['bitrate'] = CAN_BITRATE["500K"]
-
-# Or in one line
-#can_interface_receiver = can.interface.Bus(bustype=CAN_DEVICES["kvaser"], channel=1, bitrate=CAN_BITRATE["500K"])
-
-# Load CAN interface from configuration file
-#LOC_INTERFACE_CONFIGFILE="can.ini"
-#config_interface = can.util.load_file_config(LOC_INTERFACE_CONFIGFILE)
-
-#can_interface = can.Bus()
-
-#bus = can.interface.Bus()
-
-
+Arguments:
+    --version:     Show software version
+    --debug:        Activates debugging messages into a logfile
 
 """
-    MACROS WITH PRE-DEFINED MESSAGES FOR CALIBRATION
-"""
 
-macro_initiate_BTE = [
-    load_message(_id=SET_SLOPE_U_I["msg_id"], fmt=SET_SLOPE_U_I["msg_fmt"], voltage_slope=200, current_slope=200),
-    load_set_slope_pwr_filter(slope_power=200, filter=0),
-    load_set_op_lim_u(op_lim_u_mn=0,op_lim_u_mx=1400),
-    load_set_op_lim_i(op_lim_i_mn=-900,op_lim_i_mx=900),
-    load_set_op_lim_pwr(op_lim_pwr_mn=-500,op_lim_pwr_mx=500),
-    load_set_pr_lim_u(pr_lim_u_mn=0,pr_lim_u_mx=1400),
-    load_set_pr_lim_i(pr_lim_i_mn=-900,pr_lim_i_mx=900),
-    load_set_pr_lim_pwr(pr_lim_pwr_mn=-500,pr_lim_pwr_mx=500),
-    load_clearance(clearance=1),
-    load_set_rst_stop(rst_stop=1)
-]
+#TODO: Check argument list items exists and raise an error if not. (Bitrate, Device)
 
 
-def convert2_IEEE754Hex32(value):
-    """Converts a float value into a IEEE-754 hex representative value."""
+import sys, os, argparse
+import can
+import logging
+
+
+SW_VERION = 0.1
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_DIR = os.path.join(BASE_DIR, "cfg")
+LOOPBACK_DEVICE = True      # Second interface channel for sw-testing
+
+"""Enviroment variable to get a default logging configuration file."""
+#env_key = "LOG_CFG"
+#print(os.getenv(env_key, None))
+
+if os.path.exists(os.path.join(CONFIG_DIR, "logging.yaml")):
+    import yaml
+    import logging.config
+
+    with open(os.path.join(CONFIG_DIR, "logging.yaml"), "rt") as f:
+        config = yaml.safe_load(f.read())
+        logging.config.dictConfig(config)
+else:
+    print("no logging config file found")
+    frm = logging.Formatter("[{levelname:8}] {asctime} : [FROM: {module} <- {funcName}] : [{name}] -> {message}",
+                            "%d.%m.%Y %H:%M:%S", style="{")
+    # Setup for file logging
+    logfile_name = __file__[:-3] + ".log"
+    fh = logging.FileHandler(filename=logfile_name, mode='w', delay=True)
+    fh.setFormatter(frm)
+    fh.setLevel(logging.WARNING)
+    # Setup for console logging
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(frm)
+    ch.setLevel(logging.DEBUG)
+    # logger.addHandler(fh) # activated via console command
+    #logger.addHandler(ch)
+
+logger = logging.getLogger("calibration")
+#logger.setLevel(logging.DEBUG)
+# Configure module logger object
+
+
+import tas_protocol as tas  # Initialized here to make the logger objects working at module level
+
+
+class InvalidArguments(Exception):
+    """Used for provided invalid console arguments."""
+    pass
+
+
+def dummyA(*args, **kwargs):
+    pass
+
+
+
+def main():
+    logger.info("*** BTE Calibration Tool ***\n")
+    appRunning = True
+    logger_can = logging.getLogger('canlogger')
+    logger_can.debug("CAN LOGGER created")
+
+    """
+        W R I T E   C O D E   H E R E
+    """
+
+    l = can.CSVWriter(filename="test.csv")
+    while appRunning:
+        try:
+
+            for msg in tas.macroBTE_Initialization(slope_u_i_pwr=(200,200,200),
+                                                   limit_mn_u_i_pwr=(0,600,200),
+                                                   limit_mx_u_i_pwr=(0,600,200)):
+                logger_can.info(msg)
+                can_device.send(msg)
+
+
+            for msg in lp_device:
+                print(msg)
+
+
+            appRunning = False
+            logger.info("Program will quit here")
+
+        except can.CanError as e:
+            logger.error("Error occurred while CAN interface was active. %s", e)
+
+        except KeyboardInterrupt:
+            logger.info("User quit program!")
+            appRunning = False
+
+    print("Program exit")
+
+
+if __name__ == "__main__":
+
+    logger.debug("Base directory: %s", BASE_DIR)
+    logger.debug("Log configuration directory: %s", CONFIG_DIR)
+
+    # Read console arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--version", action="store_true", default=False, dest="sw_version",
+                        help="Print software version")
+    #TODO: Add location to CAN logfile
+    args = parser.parse_args()
     try:
-        return hex(np.float32(float(value)).view(np.int32).item())
-    except TypeError as e:
-        print(e)
+        if args.sw_version:
+            print("BTE Calibration Tool - v{}".format(SW_VERION))
+            sys.exit(0)
+
+    except InvalidArguments as e:
+        logger.error("Invalid argument provided")
+        sys.exit(1)
+
+    """Create a CAN device based on available configuration methodes.
+    Only the root directory can be used to load the interface configuration. 
+    Otherwise an error is raised when creating the can.Bus() object.
+    """
+    try:
+        if os.path.exists("can.ini"):
+            logger.debug("Loading CAN device settings from file")
+            can.util.load_file_config()
+            can_device = can.Bus()
+        else:
+            logger.warning("CAN device configuration file not found")
+            can.rc["interface"] = tas.CAN_INTERFACE
+            can.rc["channel"] = tas.CAN_CHANNEL
+            can.rc["bitrate"] = tas.CAN_BITRATE
+            can_device = can.interface.Bus()
+    except can.CanError as e:
+            logger.error("Failure during creating CAN device %s", e)
+    else:
+        logger.info("CAN device created: %s", can_device)
+
+    if LOOPBACK_DEVICE:
+        lp_device = can.interface.Bus(bustype=tas.CAN_DEVICES["kvaser"],
+                                      channel=1,
+                                      bitrate=tas.CAN_BITRATES["500K"])
+        logger.debug("Loopback-Interface: %s", lp_device)
+
+    main()
